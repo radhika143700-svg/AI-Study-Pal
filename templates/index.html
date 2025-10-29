@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Study Pal</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { color: #333; margin: 0; font-size: 2.5em; }
+        .header p { color: #666; margin: 10px 0; }
+        .section { margin: 25px 0; padding: 25px; border: 2px solid #e0e0e0; border-radius: 10px; background: #f9f9f9; }
+        .section h2 { color: #444; margin-top: 0; }
+        input, select, button, textarea { padding: 12px; margin: 8px; border: 2px solid #ddd; border-radius: 6px; font-size: 14px; }
+        button { background: linear-gradient(45deg, #667eea, #764ba2); color: white; cursor: pointer; border: none; font-weight: bold; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .result { margin-top: 20px; padding: 20px; background: #e8f5e8; border-radius: 8px; border-left: 5px solid #4caf50; }
+        .quiz-question { background: white; padding: 15px; margin: 10px 0; border-radius: 8px; border: 1px solid #ddd; }
+        .plan-item { background: white; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid #667eea; }
+        .tips { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        textarea { width: 100%; min-height: 100px; resize: vertical; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎓 AI Study Pal</h1>
+            <p>Your intelligent study companion for personalized learning</p>
+        </div>
+        
+        <div class="section">
+            <h2>📅 Generate Study Plan</h2>
+            <select id="subject">
+                <option value="Math">📊 Math</option>
+                <option value="Science">🔬 Science</option>
+                <option value="History">📜 History</option>
+                <option value="English">📚 English</option>
+                <option value="Computer Science">💻 Computer Science</option>
+            </select>
+            <input type="number" id="hours" placeholder="Hours per day" value="2" min="1" max="8">
+            <input type="number" id="days" placeholder="Number of days" value="7" min="1" max="30">
+            <button onclick="generatePlan()">Generate Study Plan</button>
+            <div id="planResult" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="section">
+            <h2>🧠 Take Quiz</h2>
+            <select id="quizSubject">
+                <option value="Math">📊 Math</option>
+                <option value="Science">🔬 Science</option>
+                <option value="History">📜 History</option>
+                <option value="English">📚 English</option>
+            </select>
+            <button onclick="generateQuiz()">Start Quiz</button>
+            <div id="quizResult" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="section">
+            <h2>📝 Text Summarizer</h2>
+            <textarea id="textInput" placeholder="Enter text to summarize..."></textarea><br>
+            <button onclick="summarizeText()">Summarize Text</button>
+            <div id="summaryResult" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="section">
+            <h2>💪 Get Motivational Feedback</h2>
+            <input type="number" id="score" placeholder="Your score (0-100)" min="0" max="100">
+            <button onclick="getFeedback()">Get Feedback</button>
+            <div id="feedbackResult" class="result" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+        async function generatePlan() {
+            const subject = document.getElementById('subject').value;
+            const hours = document.getElementById('hours').value;
+            const days = document.getElementById('days').value;
+            
+            const response = await fetch('/generate_plan', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({subject, hours, days})
+            });
+            
+            const data = await response.json();
+            const resultDiv = document.getElementById('planResult');
+            
+            let html = '<h3>📚 Your Personalized Study Plan:</h3>';
+            data.plan.forEach(item => {
+                html += `<div class="plan-item">
+                    <strong>Day ${item.day} (${item.date})</strong><br>
+                    📖 Topic: ${item.topic}<br>
+                    ⏰ Duration: ${item.hours} hours<br>
+                    ✅ Task: ${item.tasks}
+                </div>`;
+            });
+            
+            html += '<div class="tips"><h4>💡 Study Tips for ' + subject + ':</h4><ul>';
+            data.tips.forEach(tip => {
+                html += `<li>${tip}</li>`;
+            });
+            html += '</ul></div>';
+            
+            resultDiv.innerHTML = html;
+            resultDiv.style.display = 'block';
+        }
+
+        async function generateQuiz() {
+            const subject = document.getElementById('quizSubject').value;
+            
+            const response = await fetch('/generate_quiz', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({subject})
+            });
+            
+            const data = await response.json();
+            const resultDiv = document.getElementById('quizResult');
+            
+            let html = '<h3>🧠 Quiz: ' + subject + '</h3>';
+            data.quiz.forEach((q, index) => {
+                html += `<div class="quiz-question">
+                    <strong>Question ${index + 1}: ${q.question}</strong><br><br>`;
+                q.options.forEach((option, i) => {
+                    html += `${String.fromCharCode(65 + i)}) ${option}<br>`;
+                });
+                html += `<br><strong>✅ Answer: ${String.fromCharCode(65 + q.answer)}) ${q.options[q.answer]}</strong>
+                </div>`;
+            });
+            
+            resultDiv.innerHTML = html;
+            resultDiv.style.display = 'block';
+        }
+
+        async function summarizeText() {
+            const text = document.getElementById('textInput').value;
+            
+            if (!text.trim()) {
+                alert('Please enter some text to summarize!');
+                return;
+            }
+            
+            const response = await fetch('/summarize', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({text})
+            });
+            
+            const data = await response.json();
+            const resultDiv = document.getElementById('summaryResult');
+            
+            resultDiv.innerHTML = `<h3>📄 Summary:</h3><p>${data.summary}</p>`;
+            resultDiv.style.display = 'block';
+        }
+
+        async function getFeedback() {
+            const score = document.getElementById('score').value;
+            
+            if (!score) {
+                alert('Please enter your score!');
+                return;
+            }
+            
+            const response = await fetch('/get_feedback', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({score})
+            });
+            
+            const data = await response.json();
+            const resultDiv = document.getElementById('feedbackResult');
+            
+            resultDiv.innerHTML = `<h3>💪 Motivational Feedback:</h3><p style="font-size: 18px; font-weight: bold; color: #2e7d32;">${data.feedback}</p>`;
+            resultDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
