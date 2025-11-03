@@ -74,7 +74,7 @@ def generate_plan():
 @app.route('/generate_quiz', methods=['POST'])
 def generate_quiz():
     data = request.json
-    subject = data.get('subject')
+    subject = data.get('subject')    
     quiz = study_pal.generate_quiz(subject)
     return jsonify({'quiz': quiz})
 
@@ -86,4 +86,4 @@ def get_feedback():
     return jsonify({'feedback': feedback})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True)  
