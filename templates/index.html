@@ -74,16 +74,22 @@
             const subject = document.getElementById('subject').value;
             const hours = document.getElementById('hours').value;
             const days = document.getElementById('days').value;
-            
+
             const response = await fetch('/generate_plan', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({subject, hours, days})
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subject, hours, days })
             });
-            
+
             const data = await response.json();
             const resultDiv = document.getElementById('planResult');
-            
+
+            if (!data.plan || data.plan.length === 0) {
+                resultDiv.innerHTML = "<p style='color:red;'>⚠️ No study plan generated.</p>";
+                resultDiv.style.display = 'block';
+                return;
+            }
+
             let html = '<h3>📚 Your Personalized Study Plan:</h3>';
             data.plan.forEach(item => {
                 html += `<div class="plan-item">
@@ -93,82 +99,108 @@
                     ✅ Task: ${item.tasks}
                 </div>`;
             });
-            
+
             html += '<div class="tips"><h4>💡 Study Tips for ' + subject + ':</h4><ul>';
-            data.tips.forEach(tip => {
-                html += `<li>${tip}</li>`;
-            });
+            data.tips.forEach(tip => { html += `<li>${tip}</li>`; });
             html += '</ul></div>';
-            
+
             resultDiv.innerHTML = html;
             resultDiv.style.display = 'block';
         }
 
         async function generateQuiz() {
             const subject = document.getElementById('quizSubject').value;
-            
             const response = await fetch('/generate_quiz', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({subject})
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subject })
             });
-            
+
             const data = await response.json();
             const resultDiv = document.getElementById('quizResult');
-            
-            let html = '<h3>🧠 Quiz: ' + subject + '</h3>';
-            data.quiz.forEach((q, index) => {
+
+            if (!data.quiz || data.quiz.length === 0) {
+                resultDiv.innerHTML = "<p style='color:red;'>⚠️ No quiz generated.</p>";
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            let html = `<h3>🧠 ${subject} Quiz</h3><form id="quizForm">`;
+            data.quiz.forEach((q, i) => {
                 html += `<div class="quiz-question">
-                    <strong>Question ${index + 1}: ${q.question}</strong><br><br>`;
-                q.options.forEach((option, i) => {
-                    html += `${String.fromCharCode(65 + i)}) ${option}<br>`;
+                    <p><strong>Q${i + 1}:</strong> ${q.question}</p>`;
+                q.options.forEach((opt, idx) => {
+                    html += `<label><input type="radio" name="q${i}" value="${idx}"> ${opt}</label><br>`;
                 });
-                html += `<br><strong>✅ Answer: ${String.fromCharCode(65 + q.answer)}) ${q.options[q.answer]}</strong>
-                </div>`;
+                html += `</div>`;
             });
-            
+            html += `<button type="button" onclick='submitQuiz("${subject}", ${JSON.stringify(data.quiz)})'>Submit Quiz</button></form>`;
+
             resultDiv.innerHTML = html;
             resultDiv.style.display = 'block';
         }
 
+        async function submitQuiz(subject, quizData) {
+            let score = 0;
+
+            quizData.forEach((q, i) => {
+                const selected = document.querySelector(`input[name="q${i}"]:checked`);
+                if (selected && parseInt(selected.value) === q.answer) score++;
+            });
+
+            const percentage = Math.round((score / quizData.length) * 100);
+
+            const response = await fetch('/get_feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ score: percentage })
+            });
+
+            const data = await response.json();
+            const resultDiv = document.getElementById('quizResult');
+
+            resultDiv.innerHTML = `
+                <h3>✅ Quiz Completed!</h3>
+                <p><strong>Subject:</strong> ${subject}</p>
+                <p><strong>Score:</strong> ${percentage}%</p>
+                <p><strong>Feedback:</strong> ${data.feedback}</p>
+            `;
+        }
+
         async function summarizeText() {
             const text = document.getElementById('textInput').value;
-            
             if (!text.trim()) {
                 alert('Please enter some text to summarize!');
                 return;
             }
-            
+
             const response = await fetch('/summarize', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({text})
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text })
             });
-            
+
             const data = await response.json();
             const resultDiv = document.getElementById('summaryResult');
-            
             resultDiv.innerHTML = `<h3>📄 Summary:</h3><p>${data.summary}</p>`;
             resultDiv.style.display = 'block';
         }
 
         async function getFeedback() {
             const score = document.getElementById('score').value;
-            
             if (!score) {
                 alert('Please enter your score!');
                 return;
             }
-            
+
             const response = await fetch('/get_feedback', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({score})
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ score })
             });
-            
+
             const data = await response.json();
             const resultDiv = document.getElementById('feedbackResult');
-            
             resultDiv.innerHTML = `<h3>💪 Motivational Feedback:</h3><p style="font-size: 18px; font-weight: bold; color: #2e7d32;">${data.feedback}</p>`;
             resultDiv.style.display = 'block';
         }
